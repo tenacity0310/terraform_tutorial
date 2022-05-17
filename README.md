@@ -702,8 +702,446 @@ aws_internet_gateway.peter_terraform_internet_gateway: Creation complete after 1
 ```
 - [ ] Step 5: Check on AWS console
 ![](https://i.imgur.com/MEKqCK4.png)
-### Routing 
+### Route Table and Route
+:::success
+:school: **Concept and Link**
+* [<font color= red>**Route Table**</font>](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Route_Tables.html): A route table contains a set of rules, called routes, that **determine where network traffic from your subnet or gateway is directed**.
+* [<font color= red>**Terrafrom Resource: aws_route_table**</font>](https://registry.terraform.io/providers/hashicorp/aws/3.37.0/docs/resources/route_table)
+*  [<font color= red>**Terrafrom Resource: aws_route**</font>](https://registry.terraform.io/providers/hashicorp/aws/3.37.0/docs/resources/route)
+::: 
+- [ ] Step 1: Use `terraform state list` to have the outlook over the current AWS resources.
+```
+ubuntu@------:~/terraformtutorial$ terraform state list
+aws_internet_gateway.peter_terraform_internet_gateway
+aws_subnet.peter_terraform_public_subnet
+aws_vpc.peter_terraform_vpc
+```
+- [ ] Step 2: `vim routetable.tf`, and put the materials below
+```
+ubuntu@-----:~/terraformtutorial$ vim routetable.tf
+--- 1st way ----
+# Naming the "aws_route_table" resource
+resource "aws_route_table" "peter_terraform_route_table" {
+  vpc_id = aws_vpc.peter_terraform_vpc.id
+
+  tags = {
+    Name = "peter_route_table"
+  }
+}
+
+# add "aws_route" resource
+# adding the above "routetable" id
+# destination_cidr_block ----> The range of IP addresses where you want traffic to go
+resource "aws_route" "peter_terraform_route"{
+  route_table_id = aws_route_table.peter_terraform_route_table.id
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id = aws_internet_gateway.peter_terraform_internet_gateway.id
+}
 
 
+# --- 2nd way -----
+### Naming the "aws_route_table" resource
+#
+#resource "aws_route_table" "peter_terraform_route_table" {
+#   vpc_id = aws_vpc.peter_terraform_vpc.id
+#
+#   route {
+#	cidr_block= "0.0.0.0/0"
+#        gateway_id = aws_internet_gateway.peter_terraform_internet_gateway.id
+#}
+#
+#   tags = {
+#	Name = "peter_route_table"
+#}
+#
+#}
+```
+- [ ] Step 3: Use `terraform plan` to
 
+
+```
+ubuntu@-----:~/terraformtutorial$ terraform plan
+Refreshing Terraform state in-memory prior to plan...
+The refreshed state will be used to calculate this plan, but will not be
+persisted to local or remote state storage.
+
+aws_vpc.peter_terraform_vpc: Refreshing state... [id=vpc-015e00a2f2442a50d]
+aws_internet_gateway.peter_terraform_internet_gateway: Refreshing state... [id=igw-0bdba8452362a0648]
+aws_subnet.peter_terraform_public_subnet: Refreshing state... [id=subnet-0c9320265a689e3b8]
+
+------------------------------------------------------------------------
+
+An execution plan has been generated and is shown below.
+Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  # aws_route.peter_terraform_route will be created
+  + resource "aws_route" "peter_terraform_route" {
+      + destination_cidr_block = "0.0.0.0/0"
+      + gateway_id             = "igw-0bdba8452362a0648"
+      + id                     = (known after apply)
+      + instance_id            = (known after apply)
+      + instance_owner_id      = (known after apply)
+      + network_interface_id   = (known after apply)
+      + origin                 = (known after apply)
+      + route_table_id         = (known after apply)
+      + state                  = (known after apply)
+    }
+
+  # aws_route_table.peter_terraform_route_table will be created
+  + resource "aws_route_table" "peter_terraform_route_table" {
+      + arn              = (known after apply)
+      + id               = (known after apply)
+      + owner_id         = (known after apply)
+      + propagating_vgws = (known after apply)
+      + route            = (known after apply)
+      + tags             = {
+          + "Name" = "peter_route_table"
+        }
+      + vpc_id           = "vpc-015e00a2f2442a50d"
+    }
+
+Plan: 2 to add, 0 to change, 0 to destroy.  -----------> "route table" and "route" to be added
+...
+```
+- [ ] Step 4: run `terraform apply -auto-approve`
+```
+ubuntu@----:~/terraformtutorial$ ...
+aws_route_table.peter_terraform_route_table: Creating...
+aws_route_table.peter_terraform_route_table: Creation complete after 1s [id=rtb-0bcc6b48c2e586b4d]
+aws_route.peter_terraform_route: Creating...
+aws_route.peter_terraform_route: Creation complete after 0s [id=r-rtb-0bcc6b48c2e586b4d1080289494]
+
+Apply complete! Resources: 2 added, 0 changed, 0 destroyed.
+```
+- [ ] Step 5: Check the routetable by `terraform state list` and on AWS console
+```
+ubuntu@----:~/terraformtutorial$ terraform state list
+...
+aws_route.peter_terraform_route
+aws_route_table.peter_terraform_route_table
+```
+![](https://i.imgur.com/WH25ekU.png)
+
+- [ ] Step 6 : Create "aws_route_table_association"----Provides a resource to create an association between a route table and a subnet or a route table and an internet gateway or virtual private gateway.
+- [ ] Step 7: `vim routetable.tf` and add the following
+```
+# add "aws_route_table_association" resource to connect "subnet" and "route_table"
+resource "aws_route_table_association" "peter_terraform_rt_association" {
+  subnet_id      = aws_subnet.peter_terraform_public_subnet.id
+  route_table_id = aws_route_table.peter_terraform_route_table.id
+}
+
+```
+- [ ] Step 8: Run `terraform plan` and if OK, run `terrafrom apply -auto-approve` to create the resource
+```
+ubuntu@-----:~/terraformtutorial$ terraform plan
+------------------------------------------------------------------------
+
+An execution plan has been generated and is shown below.
+Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  # aws_route_table_association.peter_terraform_rt_association will be created
+  + resource "aws_route_table_association" "peter_terraform_rt_association" {
+      + id             = (known after apply)
+      + route_table_id = "rtb-0bcc6b48c2e586b4d"
+      + subnet_id      = "subnet-0c9320265a689e3b8"
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+
+------------------------------------------------------------------------
+```
+```
+ubuntu@----:~/terraformtutorial$ terraform apply -auto-approve
+...
+aws_route_table_association.peter_terraform_rt_association: Creating...
+aws_route_table_association.peter_terraform_rt_association: Creation complete after 0s [id=rtbassoc-02d5cd04b5629723e]
+
+Apply complete! Resources: 1 added, 0 changed, 0 destroyed
+```
+- [ ] Step 9: Check the result on AWS
+![](https://i.imgur.com/sSh2y3z.png)
+
+### Security Group
+:::info
+:female-technologist: **Usage and Links**
+* [<font color= red>**Security Group**</font>](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_SecurityGroups.html#adding-security-group-rules): A security group acts as a **virtual firewall**, controlling the traffic that is allowed to **reach and leave the resources that it is associated with**.
+* [<font color= red>**Terrafrom Resource: aws_security_group**</font>](https://registry.terraform.io/providers/hashicorp/aws/3.37.0/docs/resources/security_group)
+* To open all ports: `from_port=0` `to_port=0`
+* To set up all the protocols `TCP` `UDP` and `ICMP`: `protocol = "-1"`
+:::
+- [ ] Step 1: `vim securitygroup.tf` to write the file 
+```
+# Naming the "aws_security_group" resource
+# no need to use "tags" for "name", since "aws_security_group" has the "name" attribute
+resource "aws_security_group" "peter_terrform_security_group" {
+  name        = "peter_security_group"
+  description = "peter security group using terraform"
+  vpc_id      = aws_vpc.peter_terraform_vpc.id
+
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"] -----> make sure to change to the specific 
+IP that can access your instance
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+}
+```
+- [ ] Step 2: Use `terraform fmt` and `terrafrom plan` to make sure security group can be added properly
+```
+ubuntu@-----:~/terraformtutorial$ terraform plan
+...
+An execution plan has been generated and is shown below.
+Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  # aws_security_group.peter_terrform_security_group will be created
+  + resource "aws_security_group" "peter_terrform_security_group" {
+      + arn                    = (known after apply)
+      + description            = "peter security group using terraform"
+      + egress                 = [
+          + {
+              + cidr_blocks      = [
+                  + "0.0.0.0/0",
+                ]
+              + description      = ""
+              + from_port        = 0
+              + ipv6_cidr_blocks = []
+              + prefix_list_ids  = []
+              + protocol         = "-1"
+              + security_groups  = []
+              + self             = false
+              + to_port          = 0
+            },
+        ]
+      + id                     = (known after apply)
+      + ingress                = [
+          + {
+              + cidr_blocks      = [
+                  + "0.0.0.0/0",
+                ]
+              + description      = ""
+              + from_port        = 0
+              + ipv6_cidr_blocks = []
+              + prefix_list_ids  = []
+              + protocol         = "-1"
+              + security_groups  = []
+              + self             = false
+              + to_port          = 0
+            },
+        ]
+      + name                   = "peter_security_group"
+      + name_prefix            = (known after apply)
+      + owner_id               = (known after apply)
+      + revoke_rules_on_delete = false
+      + vpc_id                 = "vpc-015e00a2f2442a50d"
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+
+...
+```
+- [ ] Step 4: Use `terraform apply -auto-approve` to create the security group.
+```
+ubuntu@-----:~/terraformtutorial$ terraform apply -auto-approve
+...
+aws_security_group.peter_terrform_security_group: Creating...
+aws_security_group.peter_terrform_security_group: Creation complete after 1s [id=sg-07b3a8673f725c244]
+```
+- [ ] Step 5: Check on AWS console: 
+![](https://i.imgur.com/n4w035o.png)
+![](https://i.imgur.com/5Jn2RnU.png)
+![](https://i.imgur.com/TDBqYTN.png)
+
+### AWS AMI
+:::success
+:open_file_folder: **Definition**
+*  [<font color= red>**Amazon Machine Image (AMI)**</font>](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AMIs.html): An Amazon Machine Image (AMI) is a supported and maintained image provided by AWS that provides the information required to launch an instance. 
+*  [<font color= red>**Terrafrom Data Source: AWS_AMI**</font>](https://registry.terraform.io/providers/hashicorp/aws/3.37.0/docs/data-sources/ami)
+:::
+- [ ] Step 1 : Login to the AWS Console, type `EC2`, choose `instances`, then choose `Launch an instance`: choose the AMI the image to `Ubuntu Server 18.04` then locate the AMI ID for 64-bit (x86) 
+![](https://i.imgur.com/A48L0HF.png)
+> Choosing `Browse more AMIs` in the orange box above can also locate the AMI ID
+> ![](https://i.imgur.com/I1BbAzj.png)
+- [ ] Step 2: Click on the left navigate bar, choose `AMIs`, fill in the `AMI ID`, choose `Public Images`, finally locate and copy the ID of `Owner`.
+![](https://i.imgur.com/crMwRQB.png)
+- [ ] Step 3: Create new file by `vim datasources.tf`, and write waht follows:
+```
+# Naming the data source "aws_ami"
+# attribute "most recent" and "owners" should be specified.
+# "owners" is plural: mostly, the attribute's value should be made in the bracket list, whose vaule is the owner id.
+# For the "values" attribute, put into the AMI name value on the AWS console
+data "aws_ami" "peter_terrafrom_ami" {
+  most_recent = true
+  owners      = ["099720109477"]
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-bionic-18.04-amd64-server-*"]
+  }
+}
+```
+- [ ] Step 4: use `terraform fmt` to check whether there is any format error and tidy up the format.
+- [ ] Step 5: Run `terraform apply -auto-approve` and then `cat terraform.tfstate` to see what follows:
+```
+ubuntu@----:~/terraformtutorial$ cat terraform.tfstate 
+...
+  "resources": [
+    {
+      "mode": "data",
+      "type": "aws_ami",
+      "name": "peter_terrafrom_ami",
+      "provider": "provider.aws",
+      "instances": [ ------> the instances attribute value is shown here.
+       ...
+            "creation_date": "2022-05-06T19:22:38.000Z",
+            "description": "Canonical, Ubuntu, 18.04 LTS, amd64 bionic image build on 2022-05-06",
+...
+            "hypervisor": "xen",
+            "id": "ami-0ada31815ea20e9d9",
+            "image_id": "ami-0ada31815ea20e9d9",
+            "image_location": "099720109477/ubuntu/images/hvm-ssd/ubuntu-bionic-18.04-amd64-server-20220506",
+            "image_owner_alias": null,
+            "image_type": "machine",
+            "kernel_id": null,
+            "most_recent": true,
+            "name": "ubuntu/images/hvm-ssd/ubuntu-bionic-18.04-amd64-server-20220506", --------> the most recent image
+```
+
+### Create the `ed2519` SSh-key  
+::: info 
+:key: **KEY SECURITY**
+* Check the `OpenSSH` version : by using `ssh -V`
+```
+ubuntu@-----:~$ ssh -V
+OpenSSH_8.2p1 Ubuntu-4ubuntu0.5, OpenSSL 1.1.1f  31 Mar 2020
+```
+* [<font color= red>**Types of SSH Keys**</font>](https://medium.com/@honglong/%E9%81%B8%E6%93%87-ssh-key-%E7%9A%84%E5%8A%A0%E5%AF%86%E6%BC%94%E7%AE%97%E6%B3%95-70ca45c94d8e): ; `ed25519` key (most secure by now)
+* Command `ssh-keygen` will create `rsa` key (common one)
+* Command `ssh-keygen -t ed25519` will create `ed25519` key (recommended for better security)
+:::
+- [ ] Step 1: Check your `OpenSSH` version, which has to be  `OpenSSH 6.5` or above, by `ssh -V`:
+```
+ubuntu@------:~/.ssh$ ssh -V
+OpenSSH_8.2p1 Ubuntu-4ubuntu0.5, OpenSSL 1.1.1f  31 Mar 2020
+```
+- [ ] Step 2: Run the command `ssh-keygen -t ed25519` to create the key. 
+> Normally, the file will be under the directory `.ssh` to change the name, use the following way:
+```
+ubuntu@-------:~/.ssh$ ssh-keygen -t ed25519
+Generating public/private ed25519 key pair.
+Enter file in which to save the key (/home/ubuntu/.ssh/id_ed25519):/home/ubuntu/.ssh/XXXXX ----> file name 
+``` 
+### AWS Key_Pair
+:::success
+:link: **Links**
+* [<font color= red>**Terrafrom Resource: key_pair**</font>](https://registry.terraform.io/providers/hashicorp/aws/3.37.0/docs/resources/key_pair)
+* [<font color= red>**File function**</font>](https://www.terraform.io/language/functions/file)
+:::
+- [ ] Step 1: vim `keypair.tf` and fill in what follows:
+```
+# Naming the keypair "aws_key_pair"
+# Using the file path function to locate the key for better security
+resource "aws_key_pair" "peter_terraform_keypair" {
+  key_name   = "id_ed25519_peter"
+  public_key = file("~/.ssh/id_ed25519_peter.pub")
+}
+```
+- [ ] Step 2: use `terraform fmt` to check whether the format is correct or not:
+```
+ubuntu@------:~/terraformtutorial$ terraform fmt
+
+Error: Unsupported operator
+
+  on keypair.tf line 5:
+  (source code not available)
+
+Bitwise operators are not supported. Did you mean boolean NOT ("!")?
+
+
+Error: Invalid expression
+
+  on keypair.tf line 5:
+  (source code not available)
+
+Expected the start of an expression, but found an invalid expression token.
+```
+if there is error as above, make sure whether the double quotes "" is put properly or NOT. After modification, run again `terrafrom fmt`.
+```
+ubuntu@------:~/terraformtutorial$ terraform fmt
+keypair.tf ------>if correct, the file name that is well formatted will be disaplayed.
+```
+- [ ] Step 3: Run `terrafrom plan` to check the update
+```
+ubuntu@-----:~/terraformtutorial$ terraform plan
+...
+
+An execution plan has been generated and is shown below.
+Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  # aws_key_pair.peter_terraform_keypair will be created
+  + resource "aws_key_pair" "peter_terraform_keypair" {
+      + arn         = (known after apply)
+      + fingerprint = (known after apply)
+      + id          = (known after apply)
+      + key_name    = "id_ed25519_peter"
+      + key_pair_id = (known after apply)
+      + public_key  = "XXXXXXXXXXXXXXXXXXXXXX"
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+
+------------------------------------------------------------------------
+...
+```
+- [ ] Step 4: run the command `terraform apply -auto-approve`
+```
+ubuntu@----:~/terraformtutorial$ terraform apply -auto-approve
+...
+aws_key_pair.peter_terraform_keypair: Creating...
+aws_key_pair.peter_terraform_keypair: Creation complete after 0s [id=id_ed25519_peter]
+
+Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
+```
+- [ ] Step 5 : Use `terrafrom state list` and then `terraform state show aws_key_pair.peter_terraform_keypair` to show the info of keypair on aws.
+```
+ubuntu@-----:~/terraformtutorial$ terraform state list
+...
+aws_key_pair.peter_terraform_keypair
+...
+ubuntu@-----:~/terraformtutorial$ terraform state show aws_key_pair.peter_terraform_keypair
+# aws_key_pair.peter_terraform_keypair:
+resource "aws_key_pair" "peter_terraform_keypair" {
+    arn         = "XXXXXXXXXXXXXXXXXXXXXXXXX"
+    fingerprint = "XXXXXXXXXXXXXXXXXXXXXXXXX"
+    id          = "id_ed25519_peter"
+    key_name    = "id_ed25519_peter"
+    key_pair_id = "key-084d70a5f7d82f4fd"
+    public_key  = "XXXXXXXXXXXXXXXXXXXXXXXXX"
+}
+```
+- [ ] Step 6: check on AWS console on "EC2" , and click the "key pairs" the left navigation bar under "network & security"
+![](https://i.imgur.com/VI7RBwI.png)
+
+### EC2 Instance
 
