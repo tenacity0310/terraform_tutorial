@@ -8,8 +8,9 @@ resource "aws_instance" "peter_terraform_ec2" {
   subnet_id              = aws_subnet.peter_terraform_public_subnet.id
 
   root_block_device {
-    volume_size = 10
-
+    volume_size           = 10
+    volume_type           = "gp2"
+    delete_on_termination = true
   }
 
   tags = {
