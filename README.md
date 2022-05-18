@@ -1144,4 +1144,371 @@ resource "aws_key_pair" "peter_terraform_keypair" {
 ![](https://i.imgur.com/VI7RBwI.png)
 
 ### EC2 Instance
+:::info
+:desktop_computer: **Configurations**
+* [<font color= red>**Terrafrom Resource: aws_instance**</font>](https://registry.terraform.io/providers/hashicorp/aws/3.37.0/docs/resources/instance)
+:::
+- [ ] Step 1: Use `terrafrom state list` to check the current resources:
+```
+ubuntu@------:~/terraformtutorial$ terraform state list
+data.aws_ami.peter_terrafrom_ami
+aws_internet_gateway.peter_terraform_internet_gateway
+aws_key_pair.peter_terraform_keypair
+aws_route.peter_terraform_route
+aws_route_table.peter_terraform_route_table
+aws_route_table_association.peter_terraform_rt_association
+aws_security_group.peter_terrform_security_group
+aws_subnet.peter_terraform_public_subnet
+aws_vpc.peter_terraform_vpc
+```
+- [ ] Step 2: `vim ec2.tf` and do what follows:
+```
+# Naming the "aws_instance"
+# To resize the volume, use "root_block_device" block
+resource "aws_instance" "peter_terraform_ec2" {
+  instance_type          = "t2.micro"
+  ami                    = data.aws_ami.peter_terrafrom_ami.id
+  key_name               = aws_key_pair.peter_terraform_keypair.id
+  vpc_security_group_ids = [aws_security_group.peter_terrform_security_group.id]
+  subnet_id              = aws_subnet.peter_terraform_public_subnet.id
 
+  root_block_device {
+    volume_size           = 10
+    volume_type           = "gp2"
+    delete_on_termination = true
+  }
+
+  tags = {
+    Name = "peter_ec2"
+  }
+
+}
+```
+- [ ] Step 3: Use `terraform plan` to see the preview
+```
+ubuntu@----:~/terraformtutorial$ terraform plan
+...
+
+------------------------------------------------------------------------
+
+An execution plan has been generated and is shown below.
+Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  # aws_instance.peter_terraform_ec2 will be created
+  + resource "aws_instance" "peter_terraform_ec2" {
+      + ami                          = "ami-0ada31815ea20e9d9"
+      + arn                          = (known after apply)
+      + associate_public_ip_address  = (known after apply)
+      + availability_zone            = (known after apply)
+      + cpu_core_count               = (known after apply)
+      + cpu_threads_per_core         = (known after apply)
+      + get_password_data            = false
+      + host_id                      = (known after apply)
+      + id                           = (known after apply)
+      + instance_state               = (known after apply)
+      + instance_type                = "t2.micro"
+      + ipv6_address_count           = (known after apply)
+      + ipv6_addresses               = (known after apply)
+      + key_name                     = "id_ed25519_peter"
+      + outpost_arn                  = (known after apply)
+      + password_data                = (known after apply)
+      + placement_group              = (known after apply)
+      + primary_network_interface_id = (known after apply)
+      + private_dns                  = (known after apply)
+      + private_ip                   = (known after apply)
+      + public_dns                   = (known after apply)
+      + public_ip                    = (known after apply)
+      + secondary_private_ips        = (known after apply)
+      + security_groups              = (known after apply)
+      + source_dest_check            = true
+      + subnet_id                    = "subnet-0c9320265a689e3b8"
+      + tags                         = {
+          + "Name" = "peter_ec2"
+        }
+      + tenancy                      = (known after apply)
+      + vpc_security_group_ids       = [
+          + "sg-07b3a8673f725c244",
+        ]
+
+      + ebs_block_device {
+          + delete_on_termination = (known after apply)
+          + device_name           = (known after apply)
+          + encrypted             = (known after apply)
+          + iops                  = (known after apply)
+          + kms_key_id            = (known after apply)
+          + snapshot_id           = (known after apply)
+          + tags                  = (known after apply)
+          + throughput            = (known after apply)
+          + volume_id             = (known after apply)
+          + volume_size           = (known after apply)
+          + volume_type           = (known after apply)
+        }
+
+      + enclave_options {
+          + enabled = (known after apply)
+        }
+
+      + ephemeral_block_device {
+          + device_name  = (known after apply)
+          + no_device    = (known after apply)
+          + virtual_name = (known after apply)
+        }
+
+      + metadata_options {
+          + http_endpoint               = (known after apply)
+          + http_put_response_hop_limit = (known after apply)
+          + http_tokens                 = (known after apply)
+        }
+
+      + network_interface {
+          + delete_on_termination = (known after apply)
+          + device_index          = (known after apply)
+          + network_interface_id  = (known after apply)
+        }
+
+      + root_block_device {
+          + delete_on_termination = true
+          + device_name           = (known after apply)
+          + encrypted             = (known after apply)
+          + iops                  = (known after apply)
+          + kms_key_id            = (known after apply)
+          + throughput            = (known after apply)
+          + volume_id             = (known after apply)
+          + volume_size           = 10
+          + volume_type           = "gp2"
+        }
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+
+...
+```
+- [ ] Step 4: To create the instance, use `terraform apply`.
+```
+ubuntu@XXXXXXXX:~/terraformtutorial$ terraform apply
+...
+Plan: 1 to add, 0 to change, 0 to destroy.
+
+Do you want to perform these actions?
+  Terraform will perform the actions described above.
+  Only 'yes' will be accepted to approve.
+
+  Enter a value: yes
+
+aws_instance.peter_terraform_ec2: Creating...
+aws_instance.peter_terraform_ec2: Still creating... [10s elapsed]
+aws_instance.peter_terraform_ec2: Still creating... [20s elapsed]
+aws_instance.peter_terraform_ec2: Still creating... [30s elapsed]
+aws_instance.peter_terraform_ec2: Creation complete after 31s [id=i-0dd93cd94a5cefaf3]
+
+Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
+```
+- [ ] Step 5: On AWS console, locate the instance
+![](https://i.imgur.com/O4wLSiu.png)
+
+- [ ] Step 6: On the terminal, use the private `ed25519` key to connect to the EC2 instance.
+```
+ubuntu@-----:~$ sudo ssh -i ~/.ssh/id_ed25519_peter ubuntu@13.57.28.219Welcome to Ubuntu 18.04.6 LTS (GNU/Linux 5.4.0-1072-aws x86_64)
+
+...
+
+Last login: Tue May 17 13:10:32 2022 from 52.53.98.122
+To run a command as administrator (user "root"), use "sudo <command>".
+See "man sudo_root" for details.
+
+ubuntu@ip-10-87-1-228:~$ ----> new EC2 instance
+```
+### Boostrap EC2 Instance with Docker Engine
+:::success
+:pushpin: **What Boostrap Means?!**
+* [**<font color= red>Defintions and Demo</font>**](https://medium.com/codex/bootstrapping-aws-ec2-instance-to-update-packages-install-and-start-apache-http-server-f68fe1fe33ba):** Bootstrapping** in AWS simply means to **add commands or scripts to AWS EC2’s instance User Data section** that can be executed when the instance starts. It is a good automation practice to adopt to ease configuration tasks.
+:::
+- [ ] Step 1: `vim userdata.tpl` of which `.tpl` means `template`. The following will add some dependencies, install the docker, and add the `ubuntu` user to the `docker` group.
+```
+#!/bin/bash
+sudo apt-get update -y &&
+sudo apt-get install -y \
+apt-transport-https \
+ca-certificates \
+curl \
+gnupg-agent \
+software-properties-common &&
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add - &&
+sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" &&
+sudo apt-get update -y &&
+sudo apt-get install docker-ce docker-ce-cli containerd.io -y &&
+sudo usermod -aG docker ubuntu
+```
+- [ ] Step 2: `vim ec2.tf` and add the `user_data` block
+```
+ubuntu@--------:~/terraformtutorial$ cat ec2.tf
+# Naming the "aws_instance"
+# To resize the volume, use "root_block_device" block
+# Add "user_data" with the "file" function to boostrap with "userdata.tpl"
+resource "aws_instance" "peter_terraform_ec2" {
+  instance_type          = "t2.micro"
+  ami                    = data.aws_ami.peter_terrafrom_ami.id
+  key_name               = aws_key_pair.peter_terraform_keypair.id
+  vpc_security_group_ids = [aws_security_group.peter_terrform_security_group.id]
+  subnet_id              = aws_subnet.peter_terraform_public_subnet.id
+  user_data              = file("userdata.tpl")
+
+  root_block_device {
+    volume_size           = 10
+    volume_type           = "gp2"
+    delete_on_termination = true
+  }
+
+  tags = {
+    Name = "peter_ec2"
+  }
+
+}
+```
+- [ ] Step 3: run `terraform plan` to recreate the `EC2 instance`
+```
+ubuntu@-----:~/terraformtutorial$ terraform plan
+...
+
+An execution plan has been generated and is shown below.
+Resource actions are indicated with the following symbols:
+-/+ destroy and then create replacement
+
+Terraform will perform the following actions:
+
+  # aws_instance.peter_terraform_ec2 must be replaced
+-/+ resource "aws_instance" "peter_terraform_ec2" {
+        ami                          = "ami-0ada31815ea20e9d9"
+      ~ arn                          = "arn:aws:ec2:us-west-1:205943798376:instance/i-0dd93cd94a5cefaf3" -> (known after apply)
+      ~ associate_public_ip_address  = true -> (known after apply)
+      ~ availability_zone            = "us-west-1a" -> (known after apply)
+      ~ cpu_core_count               = 1 -> (known after apply)
+      ~ cpu_threads_per_core         = 1 -> (known after apply)
+      - disable_api_termination      = false -> null
+      - ebs_optimized                = false -> null
+        get_password_data            = false
+      - hibernation                  = false -> null
+      + host_id                      = (known after apply)
+      ~ id                           = "i-0dd93cd94a5cefaf3" -> (known after apply)
+      ~ instance_state               = "running" -> (known after apply)
+        instance_type                = "t2.micro"
+      ~ ipv6_address_count           = 0 -> (known after apply)
+      ~ ipv6_addresses               = [] -> (known after apply)
+        key_name                     = "id_ed25519_peter"
+      - monitoring                   = false -> null
+      + outpost_arn                  = (known after apply)
+      + password_data                = (known after apply)
+      + placement_group              = (known after apply)
+      ~ primary_network_interface_id = "eni-09ddef1374b47d1af" -> (known after apply)
+      ~ private_dns                  = "ip-10-87-1-228.us-west-1.compute.internal" -> (known after apply)
+      ~ private_ip                   = "10.87.1.228" -> (known after apply)
+      ~ public_dns                   = "ec2-13-57-28-219.us-west-1.compute.amazonaws.com" -> (known after apply)
+      ~ public_ip                    = "13.57.28.219" -> (known after apply)
+      ~ secondary_private_ips        = [] -> (known after apply)
+      ~ security_groups              = [] -> (known after apply)
+        source_dest_check            = true
+        subnet_id                    = "subnet-0c9320265a689e3b8"
+        tags                         = {
+            "Name" = "peter_ec2"
+        }
+      ~ tenancy                      = "default" -> (known after apply)
+      + user_data                    = "88ddfb401eeed8ed6f99b195c18b0313bc003eda" # forces replacement
+        vpc_security_group_ids       = [
+            "sg-07b3a8673f725c244",
+        ]
+
+      - credit_specification {
+          - cpu_credits = "standard" -> null
+        }
+
+      + ebs_block_device {
+          + delete_on_termination = (known after apply)
+          + device_name           = (known after apply)
+          + encrypted             = (known after apply)
+          + iops                  = (known after apply)
+          + kms_key_id            = (known after apply)
+          + snapshot_id           = (known after apply)
+          + tags                  = (known after apply)
+          + throughput            = (known after apply)
+          + volume_id             = (known after apply)
+          + volume_size           = (known after apply)
+          + volume_type           = (known after apply)
+        }
+
+      ~ enclave_options {
+          ~ enabled = false -> (known after apply)
+        }
+
+      + ephemeral_block_device {
+          + device_name  = (known after apply)
+          + no_device    = (known after apply)
+          + virtual_name = (known after apply)
+        }
+
+      ~ metadata_options {
+          ~ http_endpoint               = "enabled" -> (known after apply)
+          ~ http_put_response_hop_limit = 1 -> (known after apply)
+          ~ http_tokens                 = "optional" -> (known after apply)
+        }
+
+      + network_interface {
+          + delete_on_termination = (known after apply)
+          + device_index          = (known after apply)
+          + network_interface_id  = (known after apply)
+        }
+
+      ~ root_block_device {
+            delete_on_termination = true
+          ~ device_name           = "/dev/sda1" -> (known after apply)
+          ~ encrypted             = false -> (known after apply)
+          ~ iops                  = 100 -> (known after apply)
+          + kms_key_id            = (known after apply)
+          - tags                  = {} -> null
+          ~ throughput            = 0 -> (known after apply)
+          ~ volume_id             = "vol-0c9c06176d47a64f2" -> (known after apply)
+            volume_size           = 10
+            volume_type           = "gp2"
+        }
+    }
+
+Plan: 1 to add, 0 to change, 1 to destroy.
+
+------------------------------------------------------------------------
+
+Note: You didn't specify an "-out" parameter to save this plan, so Terraform
+can't guarantee that exactly these actions will be performed if
+"terraform apply" is subsequently run.
+```
+> Note that `user_data` is hashed 
+```
++ user_data  = "88ddfb401eeed8ed6f99b195c18b0313bc003eda" # forces replacement
+```
+- [ ] Step 4: run `terraform apply -auto-approve`
+```
+ubuntu@-----:~/terraformtutorial$ terraform apply -auto-approve
+aws_instance.peter_terraform_ec2: Refreshing state... [id=i-0dd93cd94a5cefaf3]
+aws_instance.peter_terraform_ec2: Destroying... [id=i-0dd93cd94a5cefaf3]
+aws_instance.peter_terraform_ec2: Still destroying... [id=i-0dd93cd94a5cefaf3, 10s elapsed]
+aws_instance.peter_terraform_ec2: Still destroying... [id=i-0dd93cd94a5cefaf3, 20s elapsed]
+aws_instance.peter_terraform_ec2: Destruction complete after 30s
+aws_instance.peter_terraform_ec2: Creating...
+aws_instance.peter_terraform_ec2: Still creating... [10s elapsed]
+aws_instance.peter_terraform_ec2: Still creating... [20s elapsed]
+aws_instance.peter_terraform_ec2: Still creating... [30s elapsed]
+aws_instance.peter_terraform_ec2: Creation complete after 31s [id=i-0f1778612fb325f9d]
+
+Apply complete! Resources: 1 added, 0 changed, 1 destroyed.
+```
+- [ ] Step 5: On AWS console, the EC2 instance should be successfully discovered.
+![](https://i.imgur.com/41DzC9i.png)
+
+- [ ] Step 6:  On the terminal, use the private `ed25519` key to connect to the EC2 instance and check whether `docker` has been successfully installed
+```
+ubuntu@------:~/.ssh$ ssh -i id_ed25519_peter ubuntu@54.67.63.60
+...
+ubuntu@ip-10-87-1-208:~$ docker -v
+Docker version 20.10.16, build aa7e414 ---> docker successfully installed
+```
